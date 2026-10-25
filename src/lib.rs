@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
+    num::NonZeroU64,
     ops::Range,
 };
 
@@ -36,7 +37,9 @@ impl Allocator {
     }
     pub fn alloc(&mut self, size: u32) -> Option<Allocation> {
         if size == 0 {
-            return Some(Allocation(new_size_addr(0, 1)));
+            const ZERO_ALLOCATION: Allocation =
+                Allocation(NonZeroU64::new(new_size_addr(0, 1)).unwrap());
+            return Some(ZERO_ALLOCATION);
         }
         let region_size_addr = *self.size_addr_set.range(new_size_addr(size, 0)..).next()?;
 
@@ -55,10 +58,13 @@ impl Allocator {
             self.addr_size_map.insert(left_addr, left_size);
         }
 
-        Some(Allocation(new_size_addr(size, addr)))
+        // size > 0, compiler is able to optimize this.
+        Some(Allocation(
+            NonZeroU64::new(new_size_addr(size, addr)).unwrap(),
+        ))
     }
     pub fn free(&mut self, allocation: Allocation) {
-        let size_addr = allocation.0;
+        let size_addr = allocation.0.get();
         let _ = core::mem::ManuallyDrop::new(allocation);
 
         let size = (size_addr >> 32) as u32;
@@ -122,7 +128,7 @@ const fn new_size_addr(size: u32, addr: u32) -> u64 {
     ((size as u64) << 32) | (addr as u64)
 }
 
-pub struct Allocation(u64);
+pub struct Allocation(NonZeroU64);
 impl std::fmt::Debug for Allocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -136,15 +142,15 @@ impl std::fmt::Debug for Allocation {
 
 impl Allocation {
     pub fn to_range(&self) -> Range<u32> {
-        let size = (self.0 >> 32) as u32;
-        let addr = self.0 as u32;
+        let size = (self.0.get() >> 32) as u32;
+        let addr = self.0.get() as u32;
         addr..addr + size
     }
     pub fn addr(&self) -> u32 {
-        self.0 as u32
+        self.0.get() as u32
     }
     pub fn size(&self) -> u32 {
-        (self.0 >> 32) as u32
+        (self.0.get() >> 32) as u32
     }
 }
 
