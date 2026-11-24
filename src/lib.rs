@@ -4,6 +4,7 @@ use std::{
     ops::Range,
 };
 
+/// A buffer Allocator based on [`BTreeMap`].
 #[derive(Debug)]
 pub struct Allocator {
     // Free regions sorted first by size than by addr.
@@ -93,6 +94,10 @@ impl Allocator {
         if to_add_size == 0 {
             return;
         }
+        let new_size = self
+            .size
+            .checked_add(to_add_size)
+            .expect("allocator size overflow");
 
         if let Some(mut last) = self.addr_size_map.last_entry()
             && last.key() + last.get() == self.size
@@ -102,7 +107,7 @@ impl Allocator {
             self.size_addr_set
                 .remove(&new_size_addr(*last_size, last_addr));
 
-            *last_size += to_add_size;
+            *last_size = new_size;
 
             self.size_addr_set
                 .insert(new_size_addr(*last_size, last_addr));
@@ -113,7 +118,7 @@ impl Allocator {
             self.size_addr_set.insert(new_size_addr(size, addr));
         }
 
-        self.size += to_add_size;
+        self.size = new_size;
     }
 }
 
