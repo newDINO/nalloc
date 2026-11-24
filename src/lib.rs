@@ -5,12 +5,6 @@ use std::{
 };
 
 #[derive(Debug)]
-pub struct BinnedAllocation {
-    pub allocation: Allocation,
-    pub bin_id: usize,
-}
-
-#[derive(Debug)]
 pub struct Allocator {
     // Free regions sorted first by size than by addr.
     size_addr_set: BTreeSet<u64>,
@@ -96,6 +90,10 @@ impl Allocator {
         }
     }
     pub fn increase_size(&mut self, to_add_size: u32) {
+        if to_add_size == 0 {
+            return;
+        }
+
         if let Some(mut last) = self.addr_size_map.last_entry()
             && last.key() + last.get() == self.size
         {
