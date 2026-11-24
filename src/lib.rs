@@ -65,7 +65,6 @@ impl Allocator {
     }
     pub fn free(&mut self, allocation: Allocation) {
         let size_addr = allocation.0.get();
-        let _ = core::mem::ManuallyDrop::new(allocation);
 
         let size = (size_addr >> 32) as u32;
         if size == 0 {
@@ -151,13 +150,5 @@ impl Allocation {
     }
     pub fn size(&self) -> u32 {
         (self.0.get() >> 32) as u32
-    }
-}
-
-impl Drop for Allocation {
-    fn drop(&mut self) {
-        if !std::thread::panicking() {
-            panic!("Allocation dropped without being freed.")
-        }
     }
 }
