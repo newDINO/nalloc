@@ -28,12 +28,8 @@ impl Allocator {
         }
     }
     pub fn is_empty(&self) -> bool {
-        if self.addr_size_map.len() > 1 {
-            false
-        } else {
-            let size = *self.addr_size_map.first_key_value().unwrap().1;
-            size == self.size
-        }
+        self.addr_size_map.len() == 1
+            && *self.addr_size_map.first_key_value().unwrap().1 == self.size
     }
     pub fn alloc(&mut self, size: u32) -> Option<Allocation> {
         if size == 0 {
